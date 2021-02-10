@@ -1,0 +1,40 @@
+group 'seng275'
+version = "SNAPSHOT" + getDate()
+
+apply plugin: 'application'
+apply plugin: 'java'
+apply from: 'versionCode.gradle'
+
+sourceCompatibility = 1.8
+
+mainClassName = 'Main' 
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.javalite:javalite-common:2.0'
+    compile 'org.json:json:20171018'
+    testImplementation('org.junit.jupiter:junit-jupiter-api:5.1.0')
+    testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.1.0')
+}
+
+test {
+    dependsOn 'cleanTest'
+    useJUnitPlatform()
+    ignoreFailures = false 
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'Main'
+    }
+    from { 
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+def getDate() {
+    new Date().format('yyyyMMddHHmmss')
+}

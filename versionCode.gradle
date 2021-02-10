@@ -1,0 +1,62 @@
+String incrementVersion(String version, int part) {
+    String[] versionParts = version.split("\\.")
+    int incrementedNum = Integer.parseInt(versionParts[part]) + 1
+    versionParts[part] = Integer.toString(incrementedNum)
+    return versionParts.join(".")
+}
+
+String clearVersion(String version, int part) {
+    String[] versionParts = version.split("\\.")
+    versionParts[part] = Integer.toString(0)
+    return versionParts.join(".")
+}
+
+void writeVersion(String version) {
+    ant.propertyfile(file: "./gradle.properties") {
+        entry(key: "VERSION", value: version)
+    }
+}
+
+task bumpPatchVersion << {
+    def version = incrementVersion(VERSION, 2)
+    writeVersion(version)
+    project.version = version
+}
+
+task bumpMinorVersion << {
+    def version = incrementVersion(VERSION, 1)
+    version = clearVersion(version, 2)
+    writeVersion(version)
+    project.version = version
+}
+
+task bumpMajorVersion << {
+    def version = incrementVersion(VERSION, 0)
+    version = clearVersion(version, 1)
+    version = clearVersion(version, 2)
+    writeVersion(version)
+    project.version = version
+}
+
+task useCurrVersion << {
+    project.version = VERSION
+}
+
+task buildJar(type: Jar, dependsOn: build) {
+    manifest {
+        attributes 'Main-Class': 'Main'
+    }
+    from sourceSets.main.output
+    from { 
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+buildJar.mustRunAfter bumpPatchVersion
+buildJar.mustRunAfter bumpMinorVersion
+buildJar.mustRunAfter bumpMajorVersion
+buildJar.mustRunAfter useCurrVersion
+
+task releasePatchVersion(dependsOn: [bumpPatchVersion, buildJar])
+task releaseMinorVersion(dependsOn: [bumpMinorVersion, buildJar])
+task releaseMajorVersion(dependsOn: [bumpMajorVersion, buildJar])
+task releaseCurrVersion(dependsOn: [useCurrVersion, buildJar])
